@@ -44,13 +44,10 @@ public class SmartstreamProject {
     
     private static DBManager dbmanager;
 
-    private static ResultSet orders, orderer;
+    private static ResultSet rs;
     
     public static void main(String[] args) {
-        // TODO code application logic here
         
-        // Arguments:
-        // Database location, Person.data location, Order.data location,
         parseArgs(args);
         
         // Creating these objects fills the database
@@ -59,6 +56,10 @@ public class SmartstreamProject {
         oreader = new OrderReader(ordersfile, dbmanager, schema);               
         
         // Code to perform required readings and printings
+        // TODO figure out how to make this class work with input files or
+        // somesuch, allowing for arbitrary readings
+        //
+        // wait no that's stupid
         try {
             // Builders to construct the outputs that are going to be
             // printed.
@@ -67,111 +68,71 @@ public class SmartstreamProject {
             StringBuilder ordersWithNames = new StringBuilder(0)
                     .append("Details of all orders with orderer's name: ");
             
-            ArrayList<Integer> peopleWithOrders = new ArrayList<>(0);
+            StringBuilder sqlBuilder = new StringBuilder(0);
             
             
-                // Create a string to request the person's data
-                StringBuilder sqlBuild = new StringBuilder(0);
-                sqlBuild.append("SELECT * FROM ");
-                if (schema.length() > 0){
-                    sqlBuild.append(schema)
-                            .append(".");
-                }
-                sqlBuild.append('"')
-                        .append("ORDER")
-                        .append('"');
-                String sql = sqlBuild.toString();            
+            //Create an SQL query to fetch a joined result set that contains
+            // all the information required to build both output strings.            
+            // Note that the schema has to be correctly referenced every time
+            sqlBuilder.append("SELECT * FROM ");
+            sqlBuilder = appendSchema(sqlBuilder);
+            sqlBuilder.append('"')
+                    .append("ORDER")
+                    .append('"')
+                    .append(" LEFT JOIN ");
+            sqlBuilder = appendSchema(sqlBuilder);
+            sqlBuilder.append("PERSON ON ");
+            sqlBuilder = appendSchema(sqlBuilder);
+            sqlBuilder.append('"')
+                    .append("ORDER")
+                    .append('"')
+                    .append(".PERSON_ID = ");
+            sqlBuilder = appendSchema(sqlBuilder);
+            sqlBuilder.append("PERSON.PERSON_ID");
             
-            orders = dbmanager.getData("SELECT * FROM APP." 
-                    + '"' + "ORDER" + '"');
-            // Iterate over all orders
-            while (orders.next()){                
-                int id = orders.getInt("PERSON_ID");
+            
+            // create result set from query
+            rs = dbmanager.getData(sqlBuilder.toString());
+            
+            // iterate through the result set
+            ArrayList<Integer> usedIDs = new ArrayList<>(0);
+            while (rs.next()){
                 ordersWithNames.append('\n')
                         .append("Order ID: ")
-                        .append(orders.getInt("ORDER_ID"))
+                        .append(rs.getInt("ORDER_ID"))
                         .append("; Order Number: ")
-                        .append(orders.getInt("ORDER_NO"))
+                        .append(rs.getInt("ORDER_NO"))
                         .append("; Person ID: ")
-                        .append(id);
-                peopleWithOrders.add(id);
-            }
-            
-            ArrayList<Integer> doneWith = new ArrayList<>(0);
-            int m = 1;            
-            for (int id: peopleWithOrders){
-                // Since we're doing this backwards, remove the ID, then check
-                // to see if it's still there (duplicate)
-                
-                // Create a string to request the person's data
-                sqlBuild = new StringBuilder(0);
-                sqlBuild.append("SELECT * FROM ");
-                if (schema.length() > 0){
-                    sqlBuild.append(schema)
-                            .append(".");
+                        .append(rs.getInt("PERSON_ID"));
+                if (rs.getString("FIRST_NAME") != null){
+                    // if there's a person for the order, give their name
+                    ordersWithNames.append("; First Name: ")
+                            .append(rs.getString("FIRST_NAME"));
                 }
-                sqlBuild.append("PERSON WHERE PERSON_ID = ")
-                        .append(Integer.toString(id));
-                sql = sqlBuild.toString();
-                orderer = dbmanager.getData(sql);                
                 
-                    if (orderer.next()) {
-                        // Find the newlines in the stringbuilder and add
-                        // the name just before that
-                        String nameSec = "; Orderer's first name: " 
-                                + orderer.getString("FIRST_NAME");
-                        
-                        // This loop finds \n, and iff the newline corresponds
-                        // to a person, inserts the current name. The position
-                        // of correspondance increases with the for-loop.
-                        // coughhack
-                        int i = 0, n = 0;
-                        while (true){                            
-                            i = ordersWithNames
-                                    .indexOf(Character.toString('\n'), i);
-                            if ( i == -1){
-                                break;
-                            }
-                            else if (n == m){
-                                ordersWithNames.insert(i, nameSec);
-                                i = i + nameSec.length() + 1;
-                                n++;
-                            }
-                            else {
-                                i++;
-                                n++;
-                            }
-                            
-                        }
-//                        ordersWithNames.append("; Orderer's first name: ")
-//                                .append(orderer.getString("FIRST_NAME"));
-                        
-                        if (!doneWith.contains(id)) {
-                            // If we won't add this person again, add them
-                            orderersDetails.append('\n')
-                                    .append("ID: ")
-                                    .append(orderer.getInt("PERSON_ID"))
-                                    .append("; Last name: ")
-                                    .append(orderer.getString("LAST_NAME"))
-                                    .append("; First name: ")
-                                    .append(orderer.getString("FIRST_NAME"))
-                                    .append("; Street: ")
-                                    .append(orderer.getString("STREET"))
-                                    .append("; City: ")
-                                    .append(orderer.getString("CITY"));
-                            doneWith.add(id);
-                        }                    
-                    }
-                    else {
-                        // Code to perform functions, eg print a warning, when
-                        // the orderer isn't available, should go here
-                        //System.out.println("No orderer found");
-                    }
-                    m++;
+                if (!usedIDs.contains(rs.getInt("PERSON_ID"))
+                        // Arbitrarily, decide that having a first and last name 
+                        // is enough to print the person's details
+                        && rs.getString("FIRST_NAME") != null
+                        && rs.getString("LAST_NAME") != null){
+                    usedIDs.add(rs.getInt("PERSON_ID"));
+                    orderersDetails.append('\n')
+                            .append("ID: ")
+                            .append(rs.getInt("PERSON_ID"))
+                            .append("; Last name: ")
+                            .append(rs.getString("LAST_NAME"))
+                            .append("; First name: ")
+                            .append(rs.getString("FIRST_NAME"))
+                            .append("; Street: ")
+                            .append(rs.getString("STREET"))
+                            .append("; City: ")
+                            .append(rs.getString("CITY"));                    
+                }     
             }
+
             System.out.println(orderersDetails.toString());
-            System.out.println(ordersWithNames.toString());
-            
+            System.out.println();
+            System.out.println(ordersWithNames.toString());            
         }
         catch (SQLException sqlx){
             LOG.log(Level.SEVERE, null, sqlx);
@@ -179,6 +140,15 @@ public class SmartstreamProject {
             System.exit(1);            
         }
 
+    }
+    
+    // Highly repeated 'add a schema if there is one' code
+    private static StringBuilder appendSchema(StringBuilder s){
+        if (schema.length() > 0){
+            s.append(schema)
+                    .append(".");
+        }
+        return s;
     }
     
     private static void parseArgs(String[] args){

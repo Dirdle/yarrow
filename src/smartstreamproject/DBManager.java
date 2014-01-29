@@ -23,6 +23,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
 /**
@@ -34,8 +35,6 @@ public class DBManager {
     private Connection connection; 
     private Statement statement;
     
-    private String schema;
-    
     public DBManager(String location, String username, String password){
         try {
             // Create a connection with the database given information
@@ -46,7 +45,7 @@ public class DBManager {
             // time I want to try and test a fix to a bug
             connection.setAutoCommit(false);
             statement = connection.createStatement(
-                    ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_READ_ONLY);            
+                    ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_READ_ONLY);
             
         }
         catch (SQLException sqlx) {
