@@ -18,71 +18,34 @@
  */
 package smartstreamproject;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- *
+ *  "[0-9]+(,[a-zA-Z]+){4}"
  * @author Oscar
  */
-public class PersonReader {
-    
-    private ClassLoader cl;
-    private BufferedReader br;
-    
-    // This pattern matches the format for actual entries in the person.data,
-    // but not the 'intro' line or the blank line. 
-    private Pattern pattern = Pattern.compile("[0-9]+(,[a-zA-Z]+){4}");
-    private Matcher matcher;
-    
+public class PersonReader extends AbstractReader {    
+    // Reader class for Person.data
+       
     public PersonReader(String filepath, DBManager destination, String schema){
         cl = this.getClass().getClassLoader();
-        
         try {
-            String line;
+            this.schema = schema;
+            this.setSource(filepath);
+            this.setDestination(destination, "PERSON", schema);
+            this.setPattern("[0-9]+(,[a-zA-Z]+){4}", ",");
             
-            // Create a reader for the file at the given path
-            
-            br = new BufferedReader(new FileReader(
-                cl.getResource(filepath).getPath()));
-            
-            // Hopefully this should keep reading to the end of the file
-            while (br.ready()){
-                line = br.readLine();
-                
-                // Code to check that the line matches the given pattern
-                matcher = pattern.matcher(line);
-                if (matcher.find()){
-                    // Code to update the database with the line
-                    String[] splitLine = line.split(",");
-                    
-                    String table;
-                    if (schema.length() > 0){
-                        table = (new StringBuilder(0)
-                                .append(schema)
-                                .append('.')
-                                .append('"')
-                                .append("PERSON")
-                                .append('"'))
-                                .toString();
-                    }
-                    else {
-                        table = new StringBuilder(0)
-                                .append('"')
-                                .append("PERSON")
-                                .append('"')
-                                .toString();
-                    }                    
-                    destination.addLine(splitLine, table);                    
-                }                
-            }
+            this.read();
         }
-        catch (IOException iox){
-            System.out.println(iox.getMessage());
-            System.out.println("Failed to find a file at the given location.");
+        catch (FileNotFoundException fnfex){
+            System.out.println("Person file not found.");
+            System.out.println(fnfex.getMessage());
+            System.exit(1);
+        }
+        catch (IOException ioex){
+            System.out.println("Error reading the person file.");
+            System.out.println(ioex.getMessage());
             System.exit(1);
         }
     }

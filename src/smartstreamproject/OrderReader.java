@@ -18,72 +18,34 @@
  */
 package smartstreamproject;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 /**
+ * 
  *
  * @author Oscar
  */
-public class OrderReader {
-    
-    private ClassLoader cl;
-    private BufferedReader br;
-    
-    private Pattern pattern = Pattern.compile("[0-9]+(\\|[0-9]+){2}");
-    private Matcher matcher;
+public class OrderReader extends AbstractReader {
     
     public OrderReader(String filepath, DBManager destination, String schema){
-
         cl = this.getClass().getClassLoader();
-        
         try {
-            String line;
+            this.schema = schema;
+            this.setSource(filepath);
+            this.setDestination(destination, "ORDER", schema);
+            this.setPattern("[0-9]+(\\|[0-9]+){2}", "\\|");
             
-            // Create a reader for the file at the given path
-            
-            br = new BufferedReader(new FileReader(
-                cl.getResource(filepath).getPath()));
-            
-            // Hopefully this should keep reading to the end of the file
-            while (br.ready()){
-                line = br.readLine();
-                
-                // Code to check that the line matches the given pattern
-                matcher = pattern.matcher(line);
-                if (matcher.find()){
-                    String[] splitLine = line.split("\\|");
-                    
-                    // Code to construct a label for the table
-                    String table;
-                    if (schema.length() > 0){
-                        table = new StringBuilder(0)
-                                .append(schema)
-                                .append(".")
-                                .append('"')
-                                .append("ORDER")
-                                .append('"')
-                                .toString();
-                    }
-                    else {
-                        table = new StringBuilder(0)
-                                .append('"')
-                                .append("ORDER")
-                                .append('"')
-                                .toString();
-                    }
-                    
-                    destination.addLine(splitLine, table);                      
-                    
-                    // Code to update the database with the line
-                }
-            }
+            this.read();
         }
-        catch (IOException iox){
-            System.out.println(iox.getMessage());
-            System.out.println("Failed to find a file at the given location.");
+        catch (FileNotFoundException fnfex){
+            System.out.println("Order file not found.");
+            System.out.println(fnfex.getMessage());
+            System.exit(1);
+        }
+        catch (IOException ioex){
+            System.out.println("Error reading the Order file.");
+            System.out.println(ioex.getMessage());
             System.exit(1);
         }
     }
