@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -108,6 +109,18 @@ public class DBManager {
             System.out.println(sqlx.getMessage());
             System.exit(1);
             return null;
+        }
+    }
+    
+    public void close(){
+        try {
+            // Close the connection
+            this.connection.close();
+        } 
+        catch (SQLException sqlx) {
+            SmartstreamProject.LOG.log(Level.SEVERE, null, sqlx);
+            System.out.println(sqlx.getMessage());
+            System.exit(1);
         }
     }
 }

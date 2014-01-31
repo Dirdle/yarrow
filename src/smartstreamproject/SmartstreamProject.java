@@ -132,7 +132,9 @@ public class SmartstreamProject {
 
             System.out.println(orderersDetails.toString());
             System.out.println();
-            System.out.println(ordersWithNames.toString());            
+            System.out.println(ordersWithNames.toString());
+            
+            dbmanager.close();
         }
         catch (SQLException sqlx){
             LOG.log(Level.SEVERE, null, sqlx);
